@@ -6,53 +6,45 @@
  * description: system2
  */
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <stddef.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#include <stddef.h>
+#include <signal.h>
 
 pid_t child_pid;
 
-struct sys {
-    struct sigaction sig;
-    pid_t fork_res;
-    int status;
-    int res;
-    char *buf[4];
-}
-
-static void signal_handling()
+static void signal_handling(int signum)
 {
-    signal(SIGINT, signal_handling);
-    kill(child_pid, SIGINT);
-}
-
-static void sys_execute(struct *sys)
-{
-    sys.buf[0] = "sh";
-    sys.buf[1] = "-c";
-    sys.buf[2] = command;
-    sys.buf[3] = NULL;
-    sys.res = execv("/bin/sh", buf);
-    if (sys.res == -1) {
-        return (-1);
-        }
+    kill(child_pid, signum);
 }
 
 int stu_system2(char *command)
 {
-    struct sys sys;
+    struct sigaction sa;
+    pid_t pid;
+    int status;
 
-    sys.sig.sa_handler = &signal_handling;
-    sys.sig.sa_flags = 0;
-    sys.fork_res = fork();
-    if (fork_res == -1) {
-        return (-1);
-    }
-    if (fork_res == 0) {
-        sys_execute()
+    sa.sa_handler = signal_handling;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, NULL);
+    pid = fork();
+    if (pid == -1) {
+        return -1;
+    } else if (pid == 0) {
+        execl("/bin/sh", "sh", "-c", command, NULL);
+        exit(EXIT_FAILURE);
     } else {
-        sigaction(SIGINT, &sys, 0);
-        waitpid(fork_res, &status, 0);
+        child_pid = pid;
+        waitpid(pid, &status, 0);
+        child_pid = 0;
+        sigaction(SIGINT, &(struct sigaction){0}, NULL);
+        if (WIFEXITED(status)) {
+            return WEXITSTATUS(status);
+        }
+        return -1;
     }
-    return (0);
 }
+
