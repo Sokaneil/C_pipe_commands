@@ -35,16 +35,16 @@ int stu_system2(char *command)
         return -1;
     } else if (pid == 0) {
         execl("/bin/sh", "sh", "-c", command, NULL);
-        exit(EXIT_FAILURE);
     } else {
         child_pid = pid;
         waitpid(pid, &status, 0);
         child_pid = 0;
         sigaction(SIGINT, &(struct sigaction){0}, NULL);
-        if (WIFEXITED(status)) {
-            return WEXITSTATUS(status);
+        while (!WIFEXITED(status)) {
+            waitpid(pid, &status, 0);
         }
-        return -1;
+        child_pid = 0;
+        sigaction(SIGINT, &(struct sigaction){0}, NULL);
+        return WEXITSTATUS(status);
     }
 }
-

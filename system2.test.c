@@ -18,5 +18,5 @@ int main(void)
 
     printf("Command exited with status: %d\n", exit_status);
 
-    return 0;
+    return (0);
 }
